@@ -48,7 +48,6 @@ def main():
     # Она сформирует оставшиеся поля JSON, которые отвечают
     # непосредственно за ведение диалога
     handle_dialog(request.json, response, 'слон')
-    handle_dialog(request.json, response, 'кролик')
 
     logging.info(f'Response:  {response!r}')
 
@@ -75,7 +74,7 @@ def handle_dialog(req, res, name_animal):
         res['response']['text'] = f'Привет! Купи {name_animal}а!'
         # Получим подсказки
         res['response']['buttons'] = get_suggests(user_id, name_animal)
-        return
+        return handle_dialog(req, res, 'кролик')
 
     # Сюда дойдем только, если пользователь не новый,
     # и разговор с Алисой уже был начат
@@ -95,9 +94,11 @@ def handle_dialog(req, res, name_animal):
         ]:
             # Пользователь согласился, прощаемся.
             res['response']['text'] = f'{name_animal.capitalize()}а можно найти на Яндекс.Маркете!'
-            if name_animal == 'кролик':
+            if name_animal == 'слон':
+                return handle_dialog(req, res, 'кролик')
+            else:
                 res['response']['end_session'] = True
-            return
+                return
 
     # Если нет, то убеждаем его купить слона!
     res['response']['text'] = \
