@@ -47,7 +47,7 @@ def main():
     # Отправляем request.json и response в функцию handle_dialog.
     # Она сформирует оставшиеся поля JSON, которые отвечают
     # непосредственно за ведение диалога
-    handle_dialog(request.json, response, 'слон')
+    handle_dialog(request.json, response)
 
     logging.info(f'Response:  {response!r}')
 
@@ -55,8 +55,10 @@ def main():
     return jsonify(response)
 
 
-def handle_dialog(req, res, name_animal):
+def handle_dialog(req, res):
     user_id = req['session']['user_id']
+
+    flag = 1
 
     if req['session']['new']:
         # Это новый пользователь.
@@ -71,10 +73,11 @@ def handle_dialog(req, res, name_animal):
             ]
         }
         # Заполняем текст ответа
-        res['response']['text'] = f'Привет! Купи {name_animal}а!'
+        res['response']['text'] = f'Привет! Купи слона!'
         # Получим подсказки
-        res['response']['buttons'] = get_suggests(user_id, name_animal)
-        return handle_dialog(req, res, 'кролик')
+        res['response']['buttons'] = get_suggests(user_id, 'слон')
+        flag = 0
+        return
 
     # Сюда дойдем только, если пользователь не новый,
     # и разговор с Алисой уже был начат
@@ -85,25 +88,39 @@ def handle_dialog(req, res, name_animal):
     # то мы считаем, что пользователь согласился.
     # Подумайте, всё ли в этом фрагменте написано "красиво"?
 
-    for item in req['request']['nlu']['tokens']:
-        if item in [
-            'ладно',
-            'куплю',
-            'покупаю',
-            'хорошо'
-        ]:
-            # Пользователь согласился, прощаемся.
-            res['response']['text'] = f'{name_animal.capitalize()}а можно найти на Яндекс.Маркете!'
-            if name_animal == 'слон':
-                return handle_dialog(req, res, 'кролик')
-            else:
-                res['response']['end_session'] = True
+    if not flag:
+        for item in req['request']['nlu']['tokens']:
+            if item in [
+                'ладно',
+                'куплю',
+                'покупаю',
+                'хорошо'
+            ]:
+                # Пользователь согласился, прощаемся.
+                res['response']['text'] = f'Слона можно найти на Яндекс.Маркете!'
+                flag = 1
                 return
 
-    # Если нет, то убеждаем его купить слона!
-    res['response']['text'] = \
-        f"Все говорят '{req['request']['original_utterance']}', а ты купи {name_animal}а!"
-    res['response']['buttons'] = get_suggests(user_id, name_animal)
+        # Если нет, то убеждаем его купить слона!
+        res['response']['text'] = \
+            f"Все говорят '{req['request']['original_utterance']}', а ты купи слона!"
+        res['response']['buttons'] = get_suggests(user_id, 'слон')
+    else:
+        for item in req['request']['nlu']['tokens']:
+            if item in [
+                'ладно',
+                'куплю',
+                'покупаю',
+                'хорошо'
+            ]:
+                # Пользователь согласился, прощаемся.
+                res['response']['text'] = f'Кролика можно найти на Яндекс.Маркете!'
+                return
+
+        # Если нет, то убеждаем его купить кролика!
+        res['response']['text'] = \
+            f"Все говорят '{req['request']['original_utterance']}', а ты купи кролика!"
+        res['response']['buttons'] = get_suggests(user_id, 'кролик')
 
 
 # Функция возвращает две подсказки для ответа.
@@ -123,18 +140,11 @@ def get_suggests(user_id, name_animal):
     # Если осталась только одна подсказка, предлагаем подсказку
     # со ссылкой на Яндекс.Маркет.
     if len(suggests) < 2:
-        if name_animal == 'слон':
-            suggests.append({
-                "title": "Ладно",
-                "url": "https://market.yandex.ru/search?text=слон",
-                "hide": True
-            })
-        else:
-            suggests.append({
-                "title": "Ладно",
-                "url": "https://market.yandex.ru/search?text=кролик",
-                "hide": True
-            })
+        suggests.append({
+            "title": "Ладно",
+            "url": f"https://market.yandex.ru/search?text={name_animal}",
+            "hide": True
+        })
 
     return suggests
 
